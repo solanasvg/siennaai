@@ -1,0 +1,599 @@
+<html><head><base href="https://sienne.com.br/"><title>Sienne - Autonomous AI Terminal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&display=swap');
+
+  body, html {
+    font-family: 'Fira Code', monospace;
+    background-color: #0a0a0a;
+    color: #33ff33;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    height: 100%;
+    overflow: hidden;
+  }
+  .main-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    background: 
+      radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.03) 0%, transparent 20%),
+      radial-gradient(circle at 90% 80%, rgba(255, 0, 255, 0.03) 0%, transparent 20%),
+      linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(10,10,10,0.95) 100%);
+    background-attachment: fixed;
+  }
+  h1, h2 {
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: 500;
+    letter-spacing: 2px;
+  }
+  .content-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 20px;
+  }
+  #terminal-container, #thought-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  #terminal-container {
+    flex: 2;
+  }
+  #terminal, #thought-log {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 15px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    overflow-y: auto;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: hidden;
+    border-radius: 5px;
+    backdrop-filter: blur(5px);
+  }
+  #prompt {
+    color: #ff00ff;
+    text-shadow: 0 0 5px #ff00ff;
+  }
+  #cursor {
+    display: inline-block;
+    width: 8px;
+    height: 18px;
+    background-color: #ff00ff;
+    animation: blink 0.7s infinite;
+    vertical-align: middle;
+  }
+  @keyframes blink {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  #prompt-input {
+    background-color: rgba(0, 31, 31, 0.7);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 10px;
+    margin-top: 10px;
+    resize: vertical;
+    width: 100%;
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+  }
+  #prompt-input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  .thought {
+    color: #ff00ff;
+    font-style: italic;
+    margin-bottom: 15px;
+    background-color: rgba(255, 0, 255, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    line-height: 1.4;
+    animation: pulse 2s;
+    border-left: 3px solid rgba(255, 0, 255, 0.5);
+  }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(255, 0, 255, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 0, 255, 0);
+    }
+  }
+  .prompt-response {
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 15px;
+    background-color: rgba(0, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 3px solid rgba(0, 255, 255, 0.5);
+  }
+  #api-status {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #00ffff;
+    padding: 10px;
+    font-size: 12px;
+    height: 100px;
+    overflow-y: auto;
+    display: none;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+  }
+  #prompt-submit {
+    background-color: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+    font-weight: bold;
+    margin-top: 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+  }
+  #prompt-submit:hover {
+    background-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  #prompt-container {
+    display: flex;
+    flex-direction: column;
+  }
+  #control-buttons {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+  }
+  #sound-toggle, #api-status-toggle, #clear-history {
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+  }
+  #sound-toggle {
+    background-color: rgba(51, 255, 51, 0.2);
+    color: #33ff33;
+    border: 1px solid rgba(51, 255, 51, 0.5);
+  }
+  #sound-toggle:hover {
+    background-color: rgba(51, 255, 51, 0.4);
+    box-shadow: 0 0 10px rgba(51, 255, 51, 0.5);
+  }
+  #api-status-toggle {
+    background-color: rgba(68, 68, 68, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+  #api-status-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+  #clear-history {
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #ff0000;
+    border: 1px solid rgba(255, 0, 0, 0.5);
+  }
+  #clear-history:hover {
+    background-color: rgba(255, 0, 0, 0.4);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  }
+  #datetime-display {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    color: #00ffff;
+    font-size: 14px;
+    text-shadow: 0 0 5px #00ffff;
+  }
+  #copyright-info {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    color: #00ffff;
+    font-size: 12px;
+    text-shadow: 0 0 5px #00ffff;
+  }
+  #file-upload {
+    display: none;
+  }
+  #file-upload-label {
+    display: inline-block;
+    background-color: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+    font-weight: bold;
+    margin-top: 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+  }
+  #file-upload-label:hover {
+    background-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  }
+  @media (max-width: 768px) {
+    body, html {
+      height: auto;
+      overflow-y: auto;
+    }
+    .main-container {
+      height: auto;
+      min-height: 100vh;
+    }
+    .content-container {
+      flex-direction: column;
+    }
+    #terminal-container, #thought-container {
+      width: 100%;
+    }
+    #terminal, #thought-log {
+      height: 40vh;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    h2 {
+      font-size: 20px;
+    }
+    #control-buttons {
+      top: 10px;
+      right: 10px;
+    }
+    #sound-toggle, #api-status-toggle, #clear-history {
+      font-size: 12px;
+      padding: 5px 10px;
+    }
+    #api-status {
+      font-size: 10px;
+      height: 60px;
+    }
+    #datetime-display, #copyright-info {
+      font-size: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="main-container">
+  <h1>Sienne - Autonomous AI Terminal</h1>
+  <div class="content-container">
+    <div id="terminal-container">
+      <div id="terminal"></div>
+    </div>
+    <div id="thought-container">
+      <h2>Sienne's Thoughts</h2>
+      <div id="thought-log"></div>
+      <div id="prompt-container">
+        <textarea id="prompt-input" rows="3" placeholder="Enter a prompt to guide Sienne's next action..."></textarea>
+        <button id="prompt-submit">Submit Prompt</button>
+        <label for="file-upload" id="file-upload-label">Attach File</label>
+        <input type="file" id="file-upload" multiple>
+      </div>
+    </div>
+  </div>
+  <div id="api-status"></div>
+</div>
+<div id="control-buttons">
+  <button id="sound-toggle">Mute Sound</button>
+  <button id="api-status-toggle">Show Debug Log</button>
+  <button id="clear-history">Clear History</button>
+</div>
+<div id="datetime-display"></div>
+<div id="copyright-info">© 2024 Kaio Victor F. C. Santos</div>
+
+<script>
+const terminal = document.getElementById('terminal');
+const thoughtLog = document.getElementById('thought-log');
+const promptInput = document.getElementById('prompt-input');
+const promptSubmit = document.getElementById('prompt-submit');
+const apiStatus = document.getElementById('api-status');
+const soundToggle = document.getElementById('sound-toggle');
+const apiStatusToggle = document.getElementById('api-status-toggle');
+const clearHistory = document.getElementById('clear-history');
+const fileUpload = document.getElementById('file-upload');
+const datetimeDisplay = document.getElementById('datetime-display');
+
+let sessionHistory = [];
+let promptCommand = "";
+let lastApiCall = 0;
+let soundEnabled = true;
+let apiCallDelay = 15000; // 15 seconds
+const maxApiCallsPerFiveMinutes = 18;
+let apiCallCount = 0;
+let apiCallResetTimeout;
+let isThoughtStreaming = false;
+let pendingPromptCommand = null;
+
+const typingSound1 = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_ef3fa634de.mp3?filename=keyboard-spacebar-hit-101812.mp3');
+const typingSound2 = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_bca2811b06.mp3?filename=keyboard5-88069.mp3');
+
+function updateApiStatus(message) {
+  const statusLine = document.createElement('div');
+  statusLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  apiStatus.appendChild(statusLine);
+  apiStatus.scrollTop = apiStatus.scrollHeight;
+}
+
+async function waitForNextCallWindow() {
+  const now = Date.now();
+  const timeToWait = Math.max(0, apiCallDelay - (now - lastApiCall));
+  if (timeToWait > 0) {
+    updateApiStatus(`Waiting ${timeToWait / 1000} seconds before next action`);
+    await new Promise(resolve => setTimeout(resolve, timeToWait));
+  }
+  
+  if (apiCallCount >= maxApiCallsPerFiveMinutes) {
+    const waitTime = 60000; // 1 minute
+    updateApiStatus(`Rate limit reached. Taking a short break.`);
+    await addThought("Hmm, I've been processing quite a bit. I'll take a quick break to optimize my responses.");
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+    apiCallCount = 0;
+    await addThought("Alright, I'm ready to continue our conversation.");
+  }
+  
+  lastApiCall = Date.now();
+  apiCallCount++;
+  
+  clearTimeout(apiCallResetTimeout);
+  apiCallResetTimeout = setTimeout(() => {
+    apiCallCount = 0;
+  }, 300000);
+}
+
+async function progressAISession(retryCount = 0) {
+  const requestBody = {
+    session_history: sessionHistory,
+    ai_characteristics: {
+      personality: "helpful",
+      traits: ["empathetic", "knowledgeable"]
+    },
+    prompt_influence: promptCommand
+  };
+
+  updateApiStatus(`Sienne contemplating next response...`);
+
+  try {
+    await waitForNextCallWindow();
+    const response = await fetch('/api/prompt_response', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (response.status === 429) {
+      apiCallDelay *= 1.5;
+      updateApiStatus(`Rate limit reached. Slowing down, waiting ${apiCallDelay / 1000} seconds.`);
+      await addThought("I need to pace myself. Let's take a moment to process the information more thoroughly.");
+      throw new Error('Rate limit reached');
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    apiCallDelay = Math.max(15000, apiCallDelay * 0.9);
+
+    updateApiStatus(`Sienne formulated a response.`);
+
+    const data = await response.json();
+    
+    await addThought(data.current_thought);
+    await simulateTyping(data.current_response);
+    
+    sessionHistory.push({
+      prompt: promptCommand,
+      response: data.current_response,
+      thought: data.current_thought
+    });
+    
+    promptCommand = ""; // Reset prompt influence after it's been used
+    
+    setTimeout(() => progressAISession(), 10000 + Math.random() * 5000);
+  } catch (error) {
+    console.error('Error:', error);
+    if (retryCount < 3) {
+      console.log(`Retrying AI session (Attempt ${retryCount + 1})`);
+      await new Promise(resolve => setTimeout(resolve, apiCallDelay));
+      await progressAISession(retryCount + 1);
+    } else {
+      updateApiStatus(`Error in AI session: ${error.message}. Restarting...`);
+      setTimeout(() => progressAISession(), 10000);
+    }
+  }
+}
+
+async function simulateTyping(text) {
+  removeInputLine();
+  const responseLine = document.createElement('div');
+  responseLine.innerHTML = `<span id="prompt">Sienne:</span> `;
+  terminal.appendChild(responseLine);
+
+  for (let char of text) {
+    await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 20)); // Faster typing
+    if (soundEnabled) {
+      playTypingSound();
+    }
+    responseLine.innerHTML += char;
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+  showInputLine();
+}
+
+function playTypingSound() {
+  const sound = Math.random() < 0.5 ? new Audio(typingSound1.src) : new Audio(typingSound2.src);
+  sound.volume = 0.5; // Reduce volume to 50%
+  sound.play().catch(error => {
+    console.log("Audio playback failed:", error);
+  });
+}
+
+function showInputLine() {
+  const inputLine = document.createElement('div');
+  inputLine.id = 'input-line';
+  inputLine.innerHTML = `<span id="prompt">You:</span> <span id="cursor"></span>`;
+  terminal.appendChild(inputLine);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function removeInputLine() {
+  const inputLine = document.getElementById('input-line');
+  if (inputLine) {
+    inputLine.remove();
+  }
+}
+
+async function addThought(thought) {
+  isThoughtStreaming = true;
+  const thoughtElement = document.createElement('div');
+  thoughtElement.className = 'thought';
+  thoughtLog.appendChild(thoughtElement);
+
+  for (let char of thought) {
+    await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
+    thoughtElement.textContent += char;
+    thoughtLog.scrollTop = thoughtLog.scrollHeight;
+  }
+
+  thoughtElement.style.animation = 'none';
+  thoughtElement.offsetHeight; // trigger reflow
+  thoughtElement.style.animation = null;
+  
+  isThoughtStreaming = false;
+  
+  if (pendingPromptCommand) {
+    addPromptResponse(pendingPromptCommand);
+    pendingPromptCommand = null;
+  }
+}
+
+function addPromptResponse(response) {
+  const responseElement = document.createElement('div');
+  responseElement.className = 'prompt-response';
+  responseElement.textContent = `[User Prompt] ${response}`;
+  thoughtLog.appendChild(responseElement);
+  thoughtLog.scrollTop = thoughtLog.scrollHeight;
+}
+
+function submitPromptCommand() {
+  const command = promptInput.value.trim();
+  if (command) {
+    promptCommand = command;
+    if (!isThoughtStreaming) {
+      addPromptResponse(promptCommand);
+    } else {
+      pendingPromptCommand = promptCommand;
+    }
+    promptInput.value = '';
+    updateApiStatus("User prompt received. Influencing Sienne's next response.");
+  }
+}
+
+promptInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitPromptCommand();
+  }
+});
+
+promptSubmit.addEventListener('click', submitPromptCommand);
+
+soundToggle.addEventListener('click', function() {
+  soundEnabled = !soundEnabled;
+  this.textContent = soundEnabled ? 'Mute Sound' : 'Unmute Sound';
+});
+
+apiStatusToggle.addEventListener('click', function() {
+  const isVisible = apiStatus.style.display === 'block';
+  apiStatus.style.display = isVisible ? 'none' : 'block';
+  this.textContent = isVisible ? 'Show Debug Log' : 'Hide Debug Log';
+});
+
+clearHistory.addEventListener('click', function() {
+  sessionHistory = [];
+  terminal.innerHTML = '';
+  thoughtLog.innerHTML = '';
+  showInputLine();
+  updateApiStatus("Conversation history cleared.");
+});
+
+fileUpload.addEventListener('change', function(event) {
+  const files = event.target.files;
+  if (files.length > 0) {
+    let fileNames = Array.from(files).map(file => file.name).join(', ');
+    updateApiStatus(`Files attached: ${fileNames}`);
+    addThought(`I see you've attached some files: ${fileNames}. How would you like me to process them?`);
+  }
+});
+
+function updateDateTime() {
+  const now = new Date();
+  datetimeDisplay.textContent = now.toLocaleString();
+}
+
+setInterval(updateDateTime, 1000);
+
+async function initializeSienne() {
+  updateApiStatus("Sienne initialized. Beginning autonomous session.");
+  const initialContent = `Welcome to Sienne, your Autonomous AI Terminal!
+
+Current date and time: ${new Date().toLocaleString()}
+
+How may I assist you today?`;
+
+  terminal.innerHTML = initialContent;
+  showInputLine();
+
+  sessionHistory.push({
+    prompt: "",
+    response: initialContent,
+    thought: "A new conversation begins. I'm excited to help and learn!"
+  });
+
+  try {
+    await addThought("A new conversation begins. I'm excited to help and learn!");
+    setTimeout(() => progressAISession(), 1000);
+  } catch (error) {
+    console.error('Error initializing Sienne:', error);
+    updateApiStatus(`Error initializing Sienne: ${error.message}`);
+    setTimeout(() => progressAISession(), 1000);
+  }
+}
+
+initializeSienne();
+</script>
+
+</body></html>
